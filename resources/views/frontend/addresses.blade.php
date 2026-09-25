@@ -1,0 +1,9 @@
+@extends('layouts.store')
+
+@section('title', 'My addresses — sss')
+@section('page-key', 'addresses')
+
+@section('content')
+<div class="container-wide section"><div class="page-heading"><div class="crumb"><a href="index.html">Home</a> / My account</div><h1>My account</h1><p>A space for your orders, favourites, and details.</p></div><div class="account-layout"><aside class="account-nav"><div class="avatar">S</div><h3>Hello, style lover.</h3><p class="muted">Your everyday, organized.</p><a class="" href="account.html">Overview <span>↗</span></a><a class="" href="orders.html">My orders <span>↗</span></a><a class="active" href="addresses.html">My addresses <span>↗</span></a><a class="" href="profile.html">Profile settings <span>↗</span></a><a class="" href="wishlist.html">Wishlist <span>↗</span></a><a href="login.html">Sign in / switch account ↗</a></aside><div><h2>Delivery addresses</h2><div id="saved-address" class="panel"></div><form id="address-form" class="panel"><h3>Add or update address</h3><div class="field"><label for="addr-name">Full name</label><input class="form-control" id="addr-name" name="addr-name" type="text" value="" required ></div><div class="field"><label for="addr-street">Address</label><input class="form-control" id="addr-street" name="addr-street" type="text" value="" required ></div><div class="two-col"><div class="field"><label for="addr-city">City</label><input class="form-control" id="addr-city" name="addr-city" type="text" value="" required ></div><div class="field"><label for="addr-state">State</label><input class="form-control" id="addr-state" name="addr-state" type="text" value="" required ></div></div><div class="field"><label for="addr-pin">PIN code</label><input class="form-control" id="addr-pin" name="addr-pin" type="text" value="" required pattern="[0-9]{6}" maxlength="6"></div><button class="btn btn-dark">Save address ↗</button></form></div></div></div>
+@endsection
+

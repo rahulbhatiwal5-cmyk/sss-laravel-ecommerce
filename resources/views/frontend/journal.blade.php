@@ -1,0 +1,9 @@
+@extends('layouts.store')
+
+@section('title', 'The everyday journal — sss')
+@section('page-key', 'journal')
+
+@section('content')
+<div class="container-wide section"><div class="page-heading"><div class="crumb"><a href="index.html">Home</a> / The everyday journal.</div><h1>The everyday journal.</h1><p>Fresh ideas. Familiar favourites.</p></div><div class="story-grid"><a class="story-card" href="article.html?story=1"><img class="" src="https://images.unsplash.com/photo-1598554747436-c9293d6a588f?auto=format&amp;fit=crop&amp;w=900&amp;q=85" onerror="this.onerror=null;this.src='{{ asset('frontend/assets/images/product-1.svg') }}'" alt="The Everyday Shirt" loading="lazy"><span class="eyebrow">STYLE NOTES / 01</span><h3>A wardrobe that works with you.</h3><p>Small ideas for a wardrobe that feels more like you.</p><span class="text-link">Read story ↗</span></a><a class="story-card" href="article.html?story=2"><img class="" src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&amp;fit=crop&amp;w=900&amp;q=85" onerror="this.onerror=null;this.src='{{ asset('frontend/assets/images/product-5.svg') }}'" alt="Soft Knit Cardigan" loading="lazy"><span class="eyebrow">STYLE NOTES / 02</span><h3>The texture of a slower weekend.</h3><p>Small ideas for a wardrobe that feels more like you.</p><span class="text-link">Read story ↗</span></a><a class="story-card" href="article.html?story=3"><img class="" src="https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&amp;fit=crop&amp;w=900&amp;q=85" onerror="this.onerror=null;this.src='{{ asset('frontend/assets/images/product-4.svg') }}'" alt="Straight Leg Denim" loading="lazy"><span class="eyebrow">STYLE NOTES / 03</span><h3>Your denim, three different ways.</h3><p>Small ideas for a wardrobe that feels more like you.</p><span class="text-link">Read story ↗</span></a></div></div>
+@endsection
+
