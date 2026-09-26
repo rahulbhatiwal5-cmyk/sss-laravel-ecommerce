@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class ProductVariant extends Model
+class ProductVariant extends Model implements HasMedia
 {
+    use InteractsWithMedia;
+
     protected $fillable = [
         'product_id',
         'color_id',
@@ -33,7 +37,10 @@ class ProductVariant extends Model
     {
         return $this->belongsTo(Product::class);
     }
-
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('variant_images');
+    }
     public function color()
     {
         return $this->belongsTo(Color::class);

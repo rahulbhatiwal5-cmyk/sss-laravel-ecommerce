@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\SssAdminLayoutPreviewController;
 use Illuminate\Support\Facades\Route;
@@ -12,10 +14,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // These pages still use sample fixtures, but access is now limited to active admins.
     Route::middleware('admin')->group(function () {
         Route::view('/', 'sss-admin.dashboard')->name('dashboard');
-        Route::view('/products', 'sss-admin.products.index')->name('products.index');
+        Route::get('/products', [ProductController::class, 'index'])->name('products.index');
         Route::view('/products/create', 'sss-admin.products.form')->name('products.create');
         Route::get('/products/{product}/edit', [SssAdminLayoutPreviewController::class, 'editProduct'])->whereNumber('product')->name('products.edit');
-        Route::view('/categories', 'sss-admin.categories')->name('categories.index');
+        Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+        Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
+        Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
+        Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
         Route::view('/orders', 'sss-admin.orders.index')->name('orders.index');
         Route::get('/orders/{order}', [SssAdminLayoutPreviewController::class, 'showOrder'])->name('orders.show');
         Route::view('/customers', 'sss-admin.customers')->name('customers.index');

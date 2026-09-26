@@ -1,14 +1,101 @@
 @extends('layouts.sss-admin')
+
 @section('title', 'Products')
-@section('subtitle', 'Considered pieces. An organized collection.')
-@section('actions')
-<a class="btn btn-dark" href="{{ route('admin.products.create') }}"><x-sss-admin.icon name="plus" /> Add product</a>
-@endsection
+@section('subtitle', 'Your live catalogue, organised in one place.')
+@section('topbar-label', 'Live product data')
+
 @section('content')
-<div class="mini-stats"><div><strong>6</strong> Total products</div><div><strong>5</strong> Active</div><div><strong>1</strong> Draft</div><div><strong>1</strong> Low stock</div></div>
-<section class="panel table-panel" data-table><div class="table-toolbar"><label class="search-input"><x-sss-admin.icon name="search" /><input data-search-input type="search" placeholder="Search name or SKU…" aria-label="Search products"></label><select data-status-filter class="form-select" aria-label="Filter product status"><option value="">All statuses</option><option>Active</option><option>Draft</option></select><select data-category-filter class="form-select" aria-label="Filter collection"><option value="">All collections</option><option>Women</option><option>Men</option><option>Accessories</option></select><button data-export="sss-products.csv" class="btn btn-light"><x-sss-admin.icon name="download" /> Export</button></div><div class="table-responsive"><table class="admin-table"><thead><tr><th>Product</th><th>SKU</th><th>Collection</th><th>Price</th><th>Inventory</th><th>Status</th><th>Action</th></tr></thead><tbody>
-@foreach(config('sss-admin-demo.products') as $product)
-<tr data-record data-search="{{ strtolower($product['name'].' '.$product['sku']) }}" data-status="{{ $product['status'] }}" data-category="{{ $product['category'] }}"><td><a class="product-cell" href="{{ route('admin.products.edit', $product['id']) }}"><img src="{{ asset('sss-admin/images/product-'.$product['image'].'.svg') }}" alt="{{ $product['name'] }}"><strong>{{ $product['name'] }}</strong></a></td><td><span class="muted">{{ $product['sku'] }}</span></td><td>{{ $product['category'] }}</td><td>₹{{ number_format($product['price']) }}</td><td><span class="{{ $product['stock'] < 10 ? 'stock-low' : '' }}">{{ $product['stock'] }} in stock</span></td><td><span class="status status-{{ strtolower($product['status']) }}">{{ $product['status'] }}</span></td><td><a class="text-link" href="{{ route('admin.products.edit', $product['id']) }}">Edit ↗</a></td></tr>
-@endforeach
-<tr class="empty-row" hidden><td colspan="7">No products found. Try a different search or filter.</td></tr></tbody></table></div><div class="table-foot"><span data-result-count aria-live="polite">6 products</span><span>Sample catalogue</span></div></section>
+    <section class="panel table-panel">
+        <form class="table-toolbar" method="GET" action="{{ route('admin.products.index') }}">
+            <label class="search-input" for="product-search">
+                <x-sss-admin.icon name="search" />
+                <input id="product-search" name="search" type="search" value="{{ $search }}"
+                    placeholder="Search name or slug" aria-label="Search products">
+            </label>
+
+            <select class="form-select" name="category_id" aria-label="Filter products by category">
+                <option value="">All categories</option>
+                @foreach ($categories as $category)
+                    <option value="{{ $category->getKey() }}"
+                        @selected((string) $categoryId === (string) $category->getKey())>
+                        {{ $category->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            <select class="form-select" name="status" aria-label="Filter product status">
+                <option value="">All statuses</option>
+                <option value="active" @selected($status === 'active')>Active</option>
+                <option value="inactive" @selected($status === 'inactive')>Inactive</option>
+            </select>
+
+            <button class="btn btn-light" type="submit">Filter</button>
+
+            @if ($search !== '' || $categoryId !== null || $status !== null)
+                <a class="text-link" href="{{ route('admin.products.index') }}">Clear</a>
+            @endif
+        </form>
+
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Brand</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Variants</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($products as $product)
+                        <tr>
+                            <td>
+                                <div class="product-cell">
+                                    <img src="{{ $product->listing_image_url ?: asset('sss-admin/images/product-placeholder.svg') }}"
+                                        alt="{{ $product->name }}" loading="lazy">
+                                    <div>
+                                        <strong>{{ $product->name }}</strong>
+                                        <small>{{ $product->slug }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ $product->category?->name ?? '—' }}</td>
+                            <td>{{ $product->brand?->name ?? '—' }}</td>
+                            <td>
+                                <strong>₹{{ number_format((float) $product->price, 2) }}</strong>
+                                @if ($product->sale_price !== null)
+                                    <small>Sale: ₹{{ number_format((float) $product->sale_price, 2) }}</small>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="status {{ $product->is_active ? 'status-active' : 'status-draft' }}">
+                                    {{ $product->is_active ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>{{ $product->variants_count }}</td>
+                        </tr>
+                    @empty
+                        <tr class="empty-row">
+                            <td colspan="6">
+                                {{ $search !== '' || $categoryId !== null || $status !== null
+                                    ? 'No products match these filters.'
+                                    : 'No products yet. Products you add later will appear here.' }}
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if ($products->total() > 0)
+            <div class="table-foot">
+                <span>
+                    Showing {{ $products->firstItem() }}–{{ $products->lastItem() }} of {{ $products->total() }} products
+                </span>
+                {{ $products->onEachSide(1)->links('pagination::bootstrap-5') }}
+            </div>
+        @endif
+    </section>
 @endsection
