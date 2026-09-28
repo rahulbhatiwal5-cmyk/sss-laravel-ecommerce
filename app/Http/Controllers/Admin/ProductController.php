@@ -8,7 +8,6 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
-use App\Models\ProductVariant;
 use App\Services\ProductMediaUploader;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -103,40 +102,70 @@ class ProductController extends Controller
                 ->whereIn('collection_name', ['main_image', 'gallery'])
                 ->orderBy('order_column')
                 ->orderBy('id'),
-            'variants' => fn ($query) => $query->orderBy('id'),
         ]);
-
-        $defaultVariant = $this->editableDefaultVariant($product->variants);
 
         return view('sss-admin.products.create', [
             'categories' => $this->productCategories(),
             'brands' => $this->productBrands(),
             'canCreateProduct' => true,
             'product' => $product,
-            'defaultVariant' => $defaultVariant,
             'isEditing' => true,
-            'variantConfigurationMessage' => $defaultVariant ? null : $this->unsupportedVariantMessage(),
         ]);
     }
 
-    public function update(UpdateProductRequest $request, Product $product): RedirectResponse
-    {
+    public function update(
+        UpdateProductRequest $request,
+        Product $product,
+        ProductMediaUploader $mediaUploader,
+    ): RedirectResponse {
         try {
-            $wasUpdated = DB::transaction(function () use ($request, $product): bool {
+            $rawGalleryMediaIds = $request->validated('remove_gallery_media', []);
+            $galleryMediaIdsForRemoval = is_array($rawGalleryMediaIds)
+                ? array_map('intval', $rawGalleryMediaIds)
+                : [];
+            $replacementMainImage = $this->replacementMainImage($request);
+            $newGalleryImages = $this->newGalleryImages($request);
+
+            $mediaUploader->begin();
+
+            $outcome = DB::transaction(function () use (
+                $request,
+                $product,
+                $mediaUploader,
+                $replacementMainImage,
+                $newGalleryImages,
+                $galleryMediaIdsForRemoval,
+            ): string {
                 $lockedProduct = Product::query()
                     ->whereKey($product->getKey())
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $defaultVariant = $this->editableDefaultVariant(
-                    $lockedProduct->variants()
-                        ->lockForUpdate()
-                        ->orderBy('id')
-                        ->get(),
-                );
+                $media = $lockedProduct->media()
+                    ->whereIn('collection_name', ['main_image', 'gallery'])
+                    ->lockForUpdate()
+                    ->orderBy('order_column')
+                    ->orderBy('id')
+                    ->get();
+                $mainImages = $media->where('collection_name', 'main_image');
+                $galleryImages = $media->where('collection_name', 'gallery');
 
-                if (! $defaultVariant) {
-                    return false;
+                if ($mainImages->count() > 1) {
+                    return 'invalid_main_image_configuration';
+                }
+
+                if ($mainImages->isEmpty() && ! $replacementMainImage) {
+                    return 'main_image_required';
+                }
+
+                $galleryImagesForRemoval = $galleryImages->whereIn('id', $galleryMediaIdsForRemoval);
+
+                if ($galleryImagesForRemoval->count() !== count($galleryMediaIdsForRemoval)) {
+                    return 'invalid_gallery_removal';
+                }
+
+                if ($galleryImages->count() - $galleryImagesForRemoval->count() + count($newGalleryImages) > 5) {
+                    return 'gallery_limit';
                 }
 
                 $productAttributes = $request->safe()->only([
@@ -163,28 +192,42 @@ class ProductController extends Controller
 
                 $lockedProduct->update($productAttributes);
 
-                $defaultVariant->update([
-                    'sku' => $request->validated('variant_sku'),
-                    'stock' => $request->validated('stock'),
-                    'low_stock_limit' => $request->validated('low_stock_limit'),
-                ]);
+                $mediaUploader->addGallery($lockedProduct, $newGalleryImages);
 
-                return true;
-            }, 3);
+                if ($replacementMainImage) {
+                    // The single-file collection removes the old main image only after this new one succeeds.
+                    // Keep this as the final upload so no later upload failure can leave the product without one.
+                    $mediaUploader->replaceMain($lockedProduct, $replacementMainImage);
+                }
+
+                return 'updated';
+            });
         } catch (ModelNotFoundException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
+            $mediaUploader->cleanup();
             report($exception);
 
             return back()
                 ->withInput()
-                ->with('error', 'The product could not be updated. Please try again.');
+                ->with('error', 'The product could not be updated. Please choose new images again and try once more.');
         }
 
-        if (! $wasUpdated) {
+        if ($outcome !== 'updated') {
             return back()
                 ->withInput()
-                ->with('error', $this->unsupportedVariantMessage());
+                ->with('error', $this->updateBlockedMessage($outcome));
+        }
+
+        try {
+            $this->removeSelectedGalleryMedia($product, $galleryMediaIdsForRemoval);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return to_route('admin.products.edit', $product)->with(
+                'error',
+                'Product details and new images were saved, but one or more selected gallery images could not be removed. Please review the gallery and try again.',
+            );
         }
 
         return to_route('admin.products.index')->with('status', 'Product updated successfully.');
@@ -257,9 +300,6 @@ class ProductController extends Controller
         return $media?->getUrl() ?? asset('sss-admin/images/product-placeholder.svg');
     }
 
-    /**
-     * @return Collection<int, Category>
-     */
     private function productCategories(): Collection
     {
         return Category::query()
@@ -269,9 +309,6 @@ class ProductController extends Controller
             ->get(['id', 'name']);
     }
 
-    /**
-     * @return Collection<int, Brand>
-     */
     private function productBrands(): Collection
     {
         return Brand::query()
@@ -280,33 +317,41 @@ class ProductController extends Controller
             ->get(['id', 'name']);
     }
 
-    /**
-     * @param  Collection<int, ProductVariant>  $variants
-     */
-    private function editableDefaultVariant(Collection $variants): ?ProductVariant
+    private function updateBlockedMessage(string $outcome): string
     {
-        if ($variants->count() !== 1) {
-            return null;
-        }
-
-        /** @var ProductVariant $variant */
-        $variant = $variants->first();
-
-        if (
-            $variant->color_id !== null ||
-            $variant->size_id !== null ||
-            $variant->price !== null ||
-            $variant->sale_price !== null
-        ) {
-            return null;
-        }
-
-        return $variant;
+        return match ($outcome) {
+            'invalid_main_image_configuration' => 'This product has an unsupported main image configuration. It must have exactly one main image before it can be edited here.',
+            'main_image_required' => 'Choose a replacement main image. A product must always have one main image.',
+            'invalid_gallery_removal' => 'One of the selected gallery images is no longer available for this product. Refresh the page and try again.',
+            'gallery_limit' => 'Keep no more than five gallery images in total.',
+            default => 'The product could not be updated. Please try again.',
+        };
     }
 
-    private function unsupportedVariantMessage(): string
+    /**
+     * @param  array<int, int>  $mediaIds
+     */
+    private function removeSelectedGalleryMedia(Product $product, array $mediaIds): void
     {
-        return 'This product cannot be edited here because it must have exactly one default variant with no size, colour, or variant price overrides.';
+        if ($mediaIds === []) {
+            return;
+        }
+
+        $galleryMedia = Media::query()
+            ->where('model_type', $product->getMorphClass())
+            ->where('model_id', $product->getKey())
+            ->where('collection_name', 'gallery')
+            ->whereIn('id', $mediaIds)
+            ->orderBy('id')
+            ->get();
+
+        if ($galleryMedia->count() !== count($mediaIds)) {
+            throw new \LogicException('A selected gallery image is no longer available for this product.');
+        }
+
+        foreach ($galleryMedia as $galleryImage) {
+            $galleryImage->delete();
+        }
     }
 
     private function mainImage(StoreProductRequest $request): UploadedFile
@@ -320,10 +365,45 @@ class ProductController extends Controller
         return $mainImage;
     }
 
+    private function replacementMainImage(UpdateProductRequest $request): ?UploadedFile
+    {
+        $mainImage = $request->file('main_image');
+
+        if ($mainImage === null) {
+            return null;
+        }
+
+        if (! $mainImage instanceof UploadedFile) {
+            throw new \LogicException('The validated replacement main image could not be read.');
+        }
+
+        return $mainImage;
+    }
+
     /**
      * @return array<int, UploadedFile>
      */
     private function galleryImages(StoreProductRequest $request): array
+    {
+        $galleryImages = $request->file('gallery', []);
+
+        if (! is_array($galleryImages)) {
+            throw new \LogicException('The validated gallery images could not be read.');
+        }
+
+        foreach ($galleryImages as $galleryImage) {
+            if (! $galleryImage instanceof UploadedFile) {
+                throw new \LogicException('The validated gallery image could not be read.');
+            }
+        }
+
+        return $galleryImages;
+    }
+
+    /**
+     * @return array<int, UploadedFile>
+     */
+    private function newGalleryImages(UpdateProductRequest $request): array
     {
         $galleryImages = $request->file('gallery', []);
 

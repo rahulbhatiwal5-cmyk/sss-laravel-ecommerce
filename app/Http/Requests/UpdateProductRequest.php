@@ -3,10 +3,11 @@
 namespace App\Http\Requests;
 
 use App\Models\Product;
-use App\Models\ProductVariant;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\Validator;
 
 class UpdateProductRequest extends FormRequest
 {
@@ -40,7 +41,6 @@ class UpdateProductRequest extends FormRequest
             'care_instructions' => $this->nullableTrimmedValue('care_instructions'),
             'gender' => $this->nullableTrimmedValue('gender'),
             'sale_price' => $this->nullableTrimmedValue('sale_price'),
-            'variant_sku' => $this->trimmedValue('variant_sku'),
             'is_active' => $this->has('is_active') ? $this->input('is_active') : false,
             'is_featured' => $this->has('is_featured') ? $this->input('is_featured') : false,
         ]);
@@ -49,12 +49,6 @@ class UpdateProductRequest extends FormRequest
     public function rules(): array
     {
         $product = $this->product();
-        $variantSkuRule = Rule::unique('product_variants', 'sku');
-
-        if ($variant = $this->variantForUniqueRule($product)) {
-            $variantSkuRule->ignore($variant);
-        }
-
         return [
             'category_id' => ['required', 'integer', Rule::exists('categories', 'id')],
             'brand_id' => ['nullable', 'integer', Rule::exists('brands', 'id')],
@@ -76,12 +70,55 @@ class UpdateProductRequest extends FormRequest
             'sale_price' => ['nullable', 'numeric', 'decimal:0,2', 'gt:0', 'lt:price', 'max:99999999.99'],
             'is_active' => ['required', 'boolean'],
             'is_featured' => ['required', 'boolean'],
-            'variant_sku' => ['required', 'string', 'max:255', $variantSkuRule],
-            'stock' => ['required', 'integer', 'min:0', 'max:4294967295'],
-            'low_stock_limit' => ['required', 'integer', 'min:0', 'max:4294967295'],
-            'main_image' => ['missing'],
-            'gallery' => ['missing'],
+            'main_image' => array_merge(['nullable'], $this->imageRules()),
+            'gallery' => ['nullable', 'array', 'max:5'],
+            'gallery.*' => array_merge(['required'], $this->imageRules()),
+            'remove_gallery_media' => ['nullable', 'array'],
+            'remove_gallery_media.*' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('media', 'id')->where(function ($query) use ($product): void {
+                    $query
+                        ->where('model_type', $product->getMorphClass())
+                        ->where('model_id', $product->getKey())
+                        ->where('collection_name', 'gallery');
+                }),
+            ],
+            'remove_main_image' => ['missing'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $product = $this->product();
+            $hasCurrentMainImage = $product->media()
+                ->where('collection_name', 'main_image')
+                ->exists();
+
+            if (! $hasCurrentMainImage && ! $this->hasFile('main_image')) {
+                $validator->errors()->add('main_image', 'Choose a replacement main image. A product must always have one main image.');
+
+                return;
+            }
+
+            $galleryRemovalIds = $this->input('remove_gallery_media', []);
+            $galleryUploads = $this->file('gallery', []);
+            $galleryRemovalCount = is_array($galleryRemovalIds) ? count($galleryRemovalIds) : 0;
+            $galleryUploadCount = is_array($galleryUploads) ? count($galleryUploads) : 0;
+            $retainedGalleryCount = $product->media()
+                ->where('collection_name', 'gallery')
+                ->count() - $galleryRemovalCount;
+
+            if ($retainedGalleryCount + $galleryUploadCount > 5) {
+                $validator->errors()->add('gallery', 'Keep no more than five gallery images in total.');
+            }
+        });
     }
 
     public function messages(): array
@@ -95,9 +132,13 @@ class UpdateProductRequest extends FormRequest
             'sale_price.decimal' => 'The sale price may have no more than two decimal places.',
             'sale_price.gt' => 'The sale price must be greater than zero.',
             'sale_price.lt' => 'The sale price must be lower than the base price.',
-            'variant_sku.unique' => 'A variant with this SKU already exists.',
-            'main_image.missing' => 'Images cannot be changed from this form.',
-            'gallery.missing' => 'Images cannot be changed from this form.',
+            'main_image.mimes' => 'The replacement main image must be a JPEG, PNG, or WebP file.',
+            'main_image.dimensions' => 'Images must be at least 100 by 100 pixels and no larger than 6000 by 8000 pixels.',
+            'gallery.max' => 'You can upload at most five new gallery images at once.',
+            'gallery.*.mimes' => 'Each new gallery image must be a JPEG, PNG, or WebP file.',
+            'gallery.*.dimensions' => 'Images must be at least 100 by 100 pixels and no larger than 6000 by 8000 pixels.',
+            'remove_gallery_media.*.exists' => 'Each gallery image selected for removal must belong to this product.',
+            'remove_main_image.missing' => 'The main image cannot be removed. Replace it with another image instead.',
         ];
     }
 
@@ -106,11 +147,23 @@ class UpdateProductRequest extends FormRequest
         return $this->route('product');
     }
 
-    private function variantForUniqueRule(Product $product): ?ProductVariant
+    /**
+     * @return array<int, mixed>
+     */
+    private function imageRules(): array
     {
-        return $product->variants()
-            ->orderBy('id')
-            ->first();
+        return [
+            File::image()
+                ->max('2mb')
+                ->dimensions(
+                    Rule::dimensions()
+                        ->minWidth(100)
+                        ->minHeight(100)
+                        ->maxWidth(6000)
+                        ->maxHeight(8000),
+                ),
+            'mimes:jpg,jpeg,png,webp',
+        ];
     }
 
     private function trimmedValue(string $key): mixed

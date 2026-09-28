@@ -16,6 +16,12 @@
 @case('categories')
 <path d="M3 7V4h7l3 3h8v13H3V7Z"/>
 @break
+@case('sizes')
+<rect x="4" y="4" width="16" height="16" rx="1"/><path d="m8 8 2 2m0-2 2 2m0-2 2 2m0-2 2 2"/>
+@break
+@case('colors')
+<path d="M12 3c4 0 7 2.7 7 6.2 0 2.3-1.5 4-3.7 4H14a1.8 1.8 0 000 3.6h.6c.8 0 1.4.6 1.4 1.4 0 1.1-.9 1.8-2.1 1.8C8.4 20 5 16.7 5 12.2 5 7.2 8.1 3 12 3Z"/><circle cx="8.5" cy="10" r=".8"/><circle cx="11.5" cy="7.5" r=".8"/><circle cx="15" cy="9.5" r=".8"/>
+@break
 @case('settings')
 <path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/>
 @break

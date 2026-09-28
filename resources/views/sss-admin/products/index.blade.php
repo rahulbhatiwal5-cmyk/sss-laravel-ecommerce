@@ -84,6 +84,7 @@
                             <td>{{ $product->variants_count }}</td>
                             <td>
                                 <a class="text-link" href="{{ route('admin.products.edit', $product) }}">Edit</a>
+                                <a class="text-link" href="{{ route('admin.products.variants.index', $product) }}">Manage variants</a>
                             </td>
                         </tr>
                     @empty

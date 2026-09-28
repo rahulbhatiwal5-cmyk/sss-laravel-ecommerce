@@ -7,26 +7,20 @@
 @endphp
 
 @section('title', $isEditing ? 'Edit product' : 'Add product')
-@section('subtitle', $isEditing ? 'Update this simple product and its default inventory variant.' : 'Add a simple product with its first inventory variant.')
+@section('subtitle', $isEditing ? 'Update product details, pricing, visibility, and photography. Manage inventory options separately.' : 'Add a simple product with its first inventory variant.')
 @section('topbar-label', 'Live product data')
 
 @section('actions')
+    @if ($isEditing)
+        <a class="btn btn-light" href="{{ route('admin.products.variants.index', $product) }}">Manage variants</a>
+    @endif
     <a class="btn btn-light" href="{{ route('admin.products.index') }}">
         &larr; All products
     </a>
 @endsection
 
 @section('content')
-    @if ($isEditing && $variantConfigurationMessage)
-        <section class="panel">
-            <span class="eyebrow">EDITOR NOT AVAILABLE</span>
-            <h2>This product uses an unsupported variant setup</h2>
-            <p class="muted">{{ $variantConfigurationMessage }}</p>
-            <a class="btn btn-light" href="{{ route('admin.products.index') }}">Back to products</a>
-        </section>
-
-        @include('sss-admin.products.partials.media-previews')
-    @elseif (! $isEditing && ! $canCreateProduct)
+    @if (! $isEditing && ! $canCreateProduct)
         <section class="panel">
             <span class="eyebrow">CATEGORY REQUIRED</span>
             <h2>Create a category first</h2>
@@ -41,7 +35,8 @@
 
         <form class="product-create-form" method="POST"
             action="{{ $isEditing ? route('admin.products.update', $product) : route('admin.products.store') }}"
-            @if (! $isEditing) enctype="multipart/form-data" data-product-create-form @endif>
+            enctype="multipart/form-data"
+            @if ($isEditing) data-product-edit-form @else data-product-create-form @endif>
             @csrf
             @if ($isEditing)
                 @method('PUT')
@@ -170,7 +165,7 @@
                     </section>
 
                     @if ($isEditing)
-                        @include('sss-admin.products.partials.media-previews')
+                        @include('sss-admin.products.partials.media-previews', ['imagesEditable' => true])
                     @else
                         <section class="panel">
                             <div class="panel-heading">
@@ -258,50 +253,59 @@
                         </div>
                     </section>
 
-                    <section class="panel">
-                        <div class="panel-heading">
-                            <div>
-                                <h2>Default inventory variant</h2>
-                                <p>This variant has no size or colour and inherits the product pricing.</p>
-                            </div>
-                        </div>
-
-                        <div class="field">
-                            <label for="variant_sku">Default variant SKU <span>*</span></label>
-                            <input class="form-control @error('variant_sku') is-invalid @enderror" id="variant_sku"
-                                name="variant_sku" type="text" value="{{ old('variant_sku', $defaultVariant?->sku) }}" maxlength="255" required
-                                placeholder="e.g. SSS-SH-001"
-                                @error('variant_sku') aria-invalid="true" aria-describedby="variant-sku-error" @enderror>
-                            <small>This SKU is used for inventory. Product SKU, variant prices, size, and colour cannot be changed here.</small>
-                            @error('variant_sku')
-                                <div class="invalid-feedback d-block" id="variant-sku-error">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="two-col">
-                            <div class="field">
-                                <label for="stock">Stock quantity <span>*</span></label>
-                                <input class="form-control @error('stock') is-invalid @enderror" id="stock" name="stock"
-                                    type="number" min="0" max="4294967295" step="1"
-                                    value="{{ old('stock', $defaultVariant?->stock ?? 0) }}" required
-                                    @error('stock') aria-invalid="true" aria-describedby="stock-error" @enderror>
-                                @error('stock')
-                                    <div class="invalid-feedback d-block" id="stock-error">{{ $message }}</div>
-                                @enderror
+                    @if (! $isEditing)
+                        <section class="panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <h2>Default inventory variant</h2>
+                                    <p>This variant has no size or colour and inherits the product pricing.</p>
+                                </div>
                             </div>
 
                             <div class="field">
-                                <label for="low_stock_limit">Low-stock limit <span>*</span></label>
-                                <input class="form-control @error('low_stock_limit') is-invalid @enderror" id="low_stock_limit"
-                                    name="low_stock_limit" type="number" min="0" max="4294967295" step="1"
-                                    value="{{ old('low_stock_limit', $defaultVariant?->low_stock_limit ?? 5) }}" required
-                                    @error('low_stock_limit') aria-invalid="true" aria-describedby="low-stock-limit-error" @enderror>
-                                @error('low_stock_limit')
-                                    <div class="invalid-feedback d-block" id="low-stock-limit-error">{{ $message }}</div>
+                                <label for="variant_sku">Default variant SKU <span>*</span></label>
+                                <input class="form-control @error('variant_sku') is-invalid @enderror" id="variant_sku"
+                                    name="variant_sku" type="text" value="{{ old('variant_sku', $defaultVariant?->sku) }}" maxlength="255" required
+                                    placeholder="e.g. SSS-SH-001"
+                                    @error('variant_sku') aria-invalid="true" aria-describedby="variant-sku-error" @enderror>
+                                <small>This SKU is used for inventory. Product SKU, variant prices, size, and colour cannot be changed here.</small>
+                                @error('variant_sku')
+                                    <div class="invalid-feedback d-block" id="variant-sku-error">{{ $message }}</div>
                                 @enderror
                             </div>
-                        </div>
-                    </section>
+
+                            <div class="two-col">
+                                <div class="field">
+                                    <label for="stock">Stock quantity <span>*</span></label>
+                                    <input class="form-control @error('stock') is-invalid @enderror" id="stock" name="stock"
+                                        type="number" min="0" max="4294967295" step="1"
+                                        value="{{ old('stock', $defaultVariant?->stock ?? 0) }}" required
+                                        @error('stock') aria-invalid="true" aria-describedby="stock-error" @enderror>
+                                    @error('stock')
+                                        <div class="invalid-feedback d-block" id="stock-error">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="field">
+                                    <label for="low_stock_limit">Low-stock limit <span>*</span></label>
+                                    <input class="form-control @error('low_stock_limit') is-invalid @enderror" id="low_stock_limit"
+                                        name="low_stock_limit" type="number" min="0" max="4294967295" step="1"
+                                        value="{{ old('low_stock_limit', $defaultVariant?->low_stock_limit ?? 5) }}" required
+                                        @error('low_stock_limit') aria-invalid="true" aria-describedby="low-stock-limit-error" @enderror>
+                                    @error('low_stock_limit')
+                                        <div class="invalid-feedback d-block" id="low-stock-limit-error">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </section>
+                    @else
+                        <section class="note-panel">
+                            <span class="eyebrow">INVENTORY OPTIONS</span>
+                            <h2>Manage size and color variants separately</h2>
+                            <p>Variant SKUs, stock, low-stock limits, statuses, and price overrides are managed on the variant page.</p>
+                            <a class="btn btn-light" href="{{ route('admin.products.variants.index', $product) }}">Manage variants</a>
+                        </section>
+                    @endif
                 </div>
 
                 <aside>
@@ -335,7 +339,7 @@
 
                     <section class="note-panel compact">
                         <span class="eyebrow">{{ $isEditing ? 'READY TO UPDATE' : 'READY TO SAVE' }}</span>
-                        <p>{{ $isEditing ? 'Check the product and inventory details before saving your changes.' : 'Check the pricing, inventory, and images before creating this product.' }}</p>
+                        <p>{{ $isEditing ? 'Check product details, pricing, visibility, and images before saving. Inventory is managed on the variant page.' : 'Check the pricing, inventory, and images before creating this product.' }}</p>
                         <button class="btn btn-dark w-100" type="submit">
                             {{ $isEditing ? 'Update product' : 'Create product' }} <x-sss-admin.icon name="arrow" />
                         </button>

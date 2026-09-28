@@ -35,6 +35,10 @@ if(productCreateForm){
  clearGalleryButton?.addEventListener('click',()=>clearGallery());
  window.addEventListener('beforeunload',()=>{if(mainImagePreviewUrl)URL.revokeObjectURL(mainImagePreviewUrl);galleryPreviewUrls.forEach(url=>URL.revokeObjectURL(url))});
 }
+const productEditForm=$('[data-product-edit-form]');
+if(productEditForm){
+ $$('[data-remove-gallery-image]',productEditForm).forEach(button=>button.addEventListener('click',()=>{const card=button.closest('[data-existing-gallery-image]');if(!card)return;const input=$('[data-gallery-removal-input]',card);if(!input)return;input.checked=!input.checked;card.classList.toggle('is-marked-for-removal',input.checked);button.setAttribute('aria-pressed',input.checked?'true':'false');button.textContent=input.checked?'Keep image':'Remove'}));
+}
 const price=$('#price'),compare=$('#compare-price');function validatePrice(){if(compare)compare.setCustomValidity(compare.value!==''&&Number(compare.value)<Number(price.value)?'Compare-at price must be at least the selling price.':'')};price?.addEventListener('input',validatePrice);compare?.addEventListener('input',validatePrice);
 $$('[data-print]').forEach(b=>b.addEventListener('click',()=>window.print()));
 })();

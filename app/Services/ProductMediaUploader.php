@@ -22,10 +22,27 @@ class ProductMediaUploader
      */
     public function store(Product $product, UploadedFile $mainImage, array $galleryImages): void
     {
+        $this->begin();
+
+        $this->replaceMain($product, $mainImage);
+        $this->addGallery($product, $galleryImages);
+    }
+
+    public function begin(): void
+    {
         $this->storedMedia = [];
+    }
 
+    public function replaceMain(Product $product, UploadedFile $mainImage): void
+    {
         $this->storedMedia[] = $this->add($product, $mainImage, 'main_image');
+    }
 
+    /**
+     * @param  array<int, UploadedFile>  $galleryImages
+     */
+    public function addGallery(Product $product, array $galleryImages): void
+    {
         foreach ($galleryImages as $galleryImage) {
             $this->storedMedia[] = $this->add($product, $galleryImage, 'gallery');
         }
