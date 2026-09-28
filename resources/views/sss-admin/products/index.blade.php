@@ -4,6 +4,12 @@
 @section('subtitle', 'Your live catalogue, organised in one place.')
 @section('topbar-label', 'Live product data')
 
+@section('actions')
+    <a class="btn btn-dark" href="{{ route('admin.products.create') }}">
+        Add product <x-sss-admin.icon name="plus" />
+    </a>
+@endsection
+
 @section('content')
     <section class="panel table-panel">
         <form class="table-toolbar" method="GET" action="{{ route('admin.products.index') }}">
@@ -46,6 +52,7 @@
                         <th>Price</th>
                         <th>Status</th>
                         <th>Variants</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,10 +82,13 @@
                                 </span>
                             </td>
                             <td>{{ $product->variants_count }}</td>
+                            <td>
+                                <a class="text-link" href="{{ route('admin.products.edit', $product) }}">Edit</a>
+                            </td>
                         </tr>
                     @empty
                         <tr class="empty-row">
-                            <td colspan="6">
+                            <td colspan="7">
                                 {{ $search !== '' || $categoryId !== null || $status !== null
                                     ? 'No products match these filters.'
                                     : 'No products yet. Products you add later will appear here.' }}

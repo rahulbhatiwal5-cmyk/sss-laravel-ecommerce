@@ -15,8 +15,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('admin')->group(function () {
         Route::view('/', 'sss-admin.dashboard')->name('dashboard');
         Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-        Route::view('/products/create', 'sss-admin.products.form')->name('products.create');
-        Route::get('/products/{product}/edit', [SssAdminLayoutPreviewController::class, 'editProduct'])->whereNumber('product')->name('products.edit');
+        Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
+        Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+        Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->whereNumber('product')->name('products.edit');
+        Route::put('/products/{product}', [ProductController::class, 'update'])->whereNumber('product')->name('products.update');
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
         Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
