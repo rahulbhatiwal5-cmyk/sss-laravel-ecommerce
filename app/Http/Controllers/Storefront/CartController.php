@@ -24,7 +24,7 @@ use Throwable;
 class CartController extends Controller
 {
     public function __construct(
-        private readonly GuestCartManager $guestCarts,
+        private readonly GuestCartManager $carts,
         private readonly ProductPriceCalculator $priceCalculator,
         private readonly CartMoney $money,
     ) {
@@ -32,10 +32,10 @@ class CartController extends Controller
 
     public function index(): View
     {
-        $cart = $this->guestCarts->current();
+        $carts = $this->carts->currentCarts();
 
-        if ($cart !== null) {
-            $cart->load([
+        if ($carts->isNotEmpty()) {
+            $carts->load([
                 'items' => fn (Builder $query) => $query->orderBy('id'),
                 'items.product' => fn (Builder $query) => $query->with([
                     'category:id,is_active',
@@ -51,7 +51,7 @@ class CartController extends Controller
             ]);
         }
 
-        $cartData = $this->cartData($cart);
+        $cartData = $this->cartData($carts);
 
         return view('frontend.cart', $cartData);
     }
@@ -62,7 +62,7 @@ class CartController extends Controller
         $variantId = (int) $request->validated('variant_id');
 
         try {
-            $outcome = $this->guestCarts->mutate(true, function (Cart $cart) use ($product, $variantId, $quantity): string {
+            $outcome = $this->carts->mutate(true, function (Cart $cart) use ($product, $variantId, $quantity): string {
                 $lockedProduct = Product::query()
                     ->publiclyVisible(now())
                     ->whereKey($product->getKey())
@@ -150,7 +150,7 @@ class CartController extends Controller
         $quantity = (int) $request->validated('quantity');
 
         try {
-            $outcome = $this->guestCarts->mutate(false, function (Cart $cart) use ($cartItem, $quantity): string {
+            $outcome = $this->carts->mutate(false, function (Cart $cart) use ($cartItem, $quantity): string {
                 $itemReference = CartItem::query()
                     ->where('cart_id', $cart->getKey())
                     ->whereKey($cartItem)
@@ -233,7 +233,7 @@ class CartController extends Controller
     public function destroy(string $cartItem): RedirectResponse
     {
         try {
-            $outcome = $this->guestCarts->mutate(false, function (Cart $cart) use ($cartItem): string {
+            $outcome = $this->carts->mutate(false, function (Cart $cart) use ($cartItem): string {
                 $item = CartItem::query()
                     ->where('cart_id', $cart->getKey())
                     ->whereKey($cartItem)
@@ -284,9 +284,9 @@ class CartController extends Controller
     /**
      * @return array{items: Collection<int, array<string, mixed>>, itemCount: int, subtotalDisplay: string, problemLineCount: int}
      */
-    private function cartData(?Cart $cart): array
+    private function cartData(Collection $carts): array
     {
-        $items = $cart?->items ?? collect();
+        $items = $carts->flatMap(fn (Cart $cart) => $cart->items);
         $now = now();
         $subtotalMinor = '0';
         $itemCount = 0;

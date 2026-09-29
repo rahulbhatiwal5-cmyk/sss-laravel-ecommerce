@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\ShopController;
 use Illuminate\Http\Request;
@@ -18,14 +19,12 @@ $storeViews = [
     'faq' => 'frontend.faq',
     'forgot-password' => 'frontend.forgot-password',
     'journal' => 'frontend.journal',
-    'login' => 'frontend.login',
     'order-details' => 'frontend.order-details',
     'orders' => 'frontend.orders',
     'order-success' => 'frontend.order-success',
     'privacy' => 'frontend.privacy',
     'product' => 'frontend.product',
     'profile' => 'frontend.profile',
-    'register' => 'frontend.register',
     'sale' => 'frontend.sale',
     'search' => 'frontend.search',
     'shipping-returns' => 'frontend.shipping-returns',
@@ -39,6 +38,11 @@ $storeViews = [
 Route::view('/', 'frontend.home')->name('store.home');
 Route::get('/shop', [ShopController::class, 'index'])->name('store.shop');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('store.products.show');
+Route::get('/login', [CustomerAuthController::class, 'createLogin'])->name('store.login');
+Route::post('/login', [CustomerAuthController::class, 'storeLogin'])->name('store.login.submit');
+Route::get('/register', [CustomerAuthController::class, 'createRegistration'])->name('store.register');
+Route::post('/register', [CustomerAuthController::class, 'storeRegistration'])->name('store.register.submit');
+Route::post('/logout', [CustomerAuthController::class, 'destroy'])->name('store.logout');
 Route::get('/cart', [CartController::class, 'index'])->name('store.cart');
 Route::post('/products/{product:slug}/cart', [CartController::class, 'store'])
     ->block(10, 10)
@@ -63,6 +67,12 @@ Route::get('/shop.html', function (Request $request) {
 });
 Route::get('/cart.html', function (Request $request) {
     return redirect()->route('store.cart', $request->query(), 301);
+});
+Route::get('/login.html', function (Request $request) {
+    return redirect()->route('store.login', $request->query(), 301);
+});
+Route::get('/register.html', function (Request $request) {
+    return redirect()->route('store.register', $request->query(), 301);
 });
 
 foreach ($storeViews as $uri => $view) {
