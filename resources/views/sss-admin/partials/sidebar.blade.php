@@ -17,6 +17,10 @@
             class="sidebar-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}"
             @if (request()->routeIs('admin.categories.*')) aria-current="page" @endif><x-sss-admin.icon
                 name="categories" /><span>Categories</span></a>
+        <a href="{{ route('admin.brands.index') }}"
+            class="sidebar-link {{ request()->routeIs('admin.brands.*') ? 'active' : '' }}"
+            @if (request()->routeIs('admin.brands.*')) aria-current="page" @endif><x-sss-admin.icon
+                name="brands" /><span>Brands</span></a>
         <a href="{{ route('admin.sizes.index') }}"
             class="sidebar-link {{ request()->routeIs('admin.sizes.*') ? 'active' : '' }}"
             @if (request()->routeIs('admin.sizes.*')) aria-current="page" @endif><x-sss-admin.icon

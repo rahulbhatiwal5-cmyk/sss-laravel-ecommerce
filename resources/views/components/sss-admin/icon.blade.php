@@ -16,6 +16,9 @@
 @case('categories')
 <path d="M3 7V4h7l3 3h8v13H3V7Z"/>
 @break
+@case('brands')
+<path d="M4 5h10l6 6-9 9-6-6V5Z"/><circle cx="9" cy="10" r="1.2"/>
+@break
 @case('sizes')
 <rect x="4" y="4" width="16" height="16" rx="1"/><path d="m8 8 2 2m0-2 2 2m0-2 2 2m0-2 2 2"/>
 @break

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\ColorController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductVariantController;
@@ -44,6 +45,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/colors/{color}/edit', [ColorController::class, 'edit'])->name('colors.edit');
         Route::put('/colors/{color}', [ColorController::class, 'update'])->name('colors.update');
         Route::delete('/colors/{color}', [ColorController::class, 'destroy'])->name('colors.destroy');
+        Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
+        Route::get('/brands/create', [BrandController::class, 'create'])->name('brands.create');
+        Route::post('/brands', [BrandController::class, 'store'])->name('brands.store');
+        Route::get('/brands/{brand}/edit', [BrandController::class, 'edit'])->name('brands.edit');
+        Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
+        Route::delete('/brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
         Route::view('/orders', 'sss-admin.orders.index')->name('orders.index');
         Route::get('/orders/{order}', [SssAdminLayoutPreviewController::class, 'showOrder'])->name('orders.show');
         Route::view('/customers', 'sss-admin.customers')->name('customers.index');

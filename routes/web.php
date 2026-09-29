@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\ProductController;
+use App\Http\Controllers\Storefront\ShopController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 $storeViews = [
@@ -8,7 +12,6 @@ $storeViews = [
     'account' => 'frontend.account',
     'addresses' => 'frontend.addresses',
     'article' => 'frontend.article',
-    'cart' => 'frontend.cart',
     'checkout' => 'frontend.checkout',
     'collections' => 'frontend.collections',
     'contact' => 'frontend.contact',
@@ -26,7 +29,6 @@ $storeViews = [
     'sale' => 'frontend.sale',
     'search' => 'frontend.search',
     'shipping-returns' => 'frontend.shipping-returns',
-    'shop' => 'frontend.shop',
     'sitemap' => 'frontend.sitemap',
     'size-guide' => 'frontend.size-guide',
     'terms' => 'frontend.terms',
@@ -35,6 +37,20 @@ $storeViews = [
 ];
 
 Route::view('/', 'frontend.home')->name('store.home');
+Route::get('/shop', [ShopController::class, 'index'])->name('store.shop');
+Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('store.products.show');
+Route::get('/cart', [CartController::class, 'index'])->name('store.cart');
+Route::post('/products/{product:slug}/cart', [CartController::class, 'store'])
+    ->block(10, 10)
+    ->name('store.cart.store');
+Route::patch('/cart/items/{cartItem}', [CartController::class, 'update'])
+    ->whereNumber('cartItem')
+    ->block(10, 10)
+    ->name('store.cart.update');
+Route::delete('/cart/items/{cartItem}', [CartController::class, 'destroy'])
+    ->whereNumber('cartItem')
+    ->block(10, 10)
+    ->name('store.cart.destroy');
 
 foreach ($storeViews as $uri => $view) {
     Route::view("/{$uri}", $view)->name("store.{$uri}");
@@ -42,6 +58,12 @@ foreach ($storeViews as $uri => $view) {
 
 // Preserve the template's existing .html navigation while pages move to Laravel URLs.
 Route::view('/index.html', 'frontend.home');
+Route::get('/shop.html', function (Request $request) {
+    return redirect()->route('store.shop', $request->query(), 301);
+});
+Route::get('/cart.html', function (Request $request) {
+    return redirect()->route('store.cart', $request->query(), 301);
+});
 
 foreach ($storeViews as $uri => $view) {
     Route::view("/{$uri}.html", $view);

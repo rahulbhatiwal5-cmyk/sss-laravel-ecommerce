@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use DateTimeInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -53,6 +55,33 @@ class Product extends Model implements HasMedia
     public function variants()
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    /**
+     * Limit a query to products that may be shown on the storefront.
+     */
+    public function scopePubliclyVisible(Builder $query, ?DateTimeInterface $now = null): Builder
+    {
+        $now ??= now();
+
+        return $query
+            ->where('is_active', true)
+            ->whereNotNull('published_at')
+            ->where('published_at', '<=', $now)
+            ->whereHas('category', fn (Builder $categoryQuery) => $categoryQuery->where('is_active', true));
+    }
+
+    /**
+     * Check the same visibility rules for an already-loaded storefront product.
+     */
+    public function isPubliclyVisible(?DateTimeInterface $now = null): bool
+    {
+        $now ??= now();
+
+        return $this->is_active
+            && $this->published_at !== null
+            && $this->published_at->lte($now)
+            && $this->category?->is_active === true;
     }
 
     public function images()
