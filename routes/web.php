@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Storefront\CartController;
+use App\Http\Controllers\Storefront\AddressController;
 use App\Http\Controllers\Storefront\CustomerAuthController;
+use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\ShopController;
 use Illuminate\Http\Request;
@@ -11,9 +13,7 @@ $storeViews = [
     '404' => 'frontend.404',
     'about' => 'frontend.about',
     'account' => 'frontend.account',
-    'addresses' => 'frontend.addresses',
     'article' => 'frontend.article',
-    'checkout' => 'frontend.checkout',
     'collections' => 'frontend.collections',
     'contact' => 'frontend.contact',
     'faq' => 'frontend.faq',
@@ -43,6 +43,24 @@ Route::post('/login', [CustomerAuthController::class, 'storeLogin'])->name('stor
 Route::get('/register', [CustomerAuthController::class, 'createRegistration'])->name('store.register');
 Route::post('/register', [CustomerAuthController::class, 'storeRegistration'])->name('store.register.submit');
 Route::post('/logout', [CustomerAuthController::class, 'destroy'])->name('store.logout');
+Route::middleware('customer')->group(function () {
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('store.checkout');
+    Route::get('/addresses', [AddressController::class, 'index'])->name('store.addresses');
+    Route::get('/addresses/create', [AddressController::class, 'create'])->name('store.addresses.create');
+    Route::post('/addresses', [AddressController::class, 'store'])->name('store.addresses.store');
+    Route::get('/addresses/{address}/edit', [AddressController::class, 'edit'])
+        ->whereNumber('address')
+        ->name('store.addresses.edit');
+    Route::put('/addresses/{address}', [AddressController::class, 'update'])
+        ->whereNumber('address')
+        ->name('store.addresses.update');
+    Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])
+        ->whereNumber('address')
+        ->name('store.addresses.destroy');
+    Route::patch('/addresses/{address}/default', [AddressController::class, 'setDefault'])
+        ->whereNumber('address')
+        ->name('store.addresses.default');
+});
 Route::get('/cart', [CartController::class, 'index'])->name('store.cart');
 Route::post('/products/{product:slug}/cart', [CartController::class, 'store'])
     ->block(10, 10)
@@ -67,6 +85,12 @@ Route::get('/shop.html', function (Request $request) {
 });
 Route::get('/cart.html', function (Request $request) {
     return redirect()->route('store.cart', $request->query(), 301);
+});
+Route::get('/checkout.html', function (Request $request) {
+    return redirect()->route('store.checkout', $request->query(), 301);
+});
+Route::get('/addresses.html', function (Request $request) {
+    return redirect()->route('store.addresses', $request->query(), 301);
 });
 Route::get('/login.html', function (Request $request) {
     return redirect()->route('store.login', $request->query(), 301);
