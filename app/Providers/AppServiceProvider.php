@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\GuestCartManager;
+use App\Services\CustomerWishlist;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 
@@ -22,7 +23,14 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::composer('partials.store-header', function ($view): void {
-            $view->with('cartItemCount', app(GuestCartManager::class)->itemCount());
+            $wishlists = app(CustomerWishlist::class);
+            $wishlistCustomer = $wishlists->activeCustomer();
+
+            $view->with([
+                'cartItemCount' => app(GuestCartManager::class)->itemCount(),
+                'canManageWishlist' => $wishlistCustomer !== null,
+                'wishlistCount' => $wishlists->countFor($wishlistCustomer),
+            ]);
         });
     }
 }

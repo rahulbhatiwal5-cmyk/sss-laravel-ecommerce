@@ -11,6 +11,14 @@
             <p>Timeless shapes. Fresh details. Pieces you’ll reach for again and again.</p>
         </div>
 
+        @if (session('status'))
+            <div class="alert alert-success" role="status">{{ session('status') }}</div>
+        @endif
+
+        @if (session('error'))
+            <div class="alert alert-danger" role="alert">{{ session('error') }}</div>
+        @endif
+
         <form method="GET" action="{{ route('store.shop') }}">
             <div class="search-bar">
                 <label class="visually-hidden" for="shop-search">Search products</label>
@@ -95,6 +103,24 @@
                                     @endif
                                     ₹{{ number_format((float) $product->shop_effective_price, 2) }}
                                 </span>
+
+                                @php($wishlistItemId = $wishlistItemIds[(int) $product->getKey()] ?? null)
+                                @if ($canManageWishlist)
+                                    @if ($wishlistItemId)
+                                        <form method="POST" action="{{ route('store.wishlist.destroy', $wishlistItemId) }}" class="mt-2">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="text-button" type="submit">Remove saved piece</button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('store.wishlist.store', $product) }}" class="mt-2">
+                                            @csrf
+                                            <button class="text-button" type="submit">Save this piece</button>
+                                        </form>
+                                    @endif
+                                @elseif ($isWishlistGuest)
+                                    <a class="text-link d-inline-block mt-2" href="{{ route('store.login') }}">Sign in to save</a>
+                                @endif
                             </article>
                         @empty
                             <div class="empty">

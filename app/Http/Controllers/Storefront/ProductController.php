@@ -5,14 +5,21 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\CustomerWishlist;
 use App\Services\ProductPriceCalculator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class ProductController extends Controller
 {
-    public function show(Product $product, ProductPriceCalculator $priceCalculator): View
+    public function show(
+        Product $product,
+        ProductPriceCalculator $priceCalculator,
+        CustomerWishlist $wishlists,
+        Request $request,
+    ): View
     {
         $product = Product::query()
             ->publiclyVisible(now())
@@ -78,6 +85,10 @@ class ProductController extends Controller
         $pricingSummary = $priceCalculator->summarize($product, $selectableVariants);
         $summaryPrice = $pricingSummary['minimum_effective_price']
             ?? $priceCalculator->productEffectivePrice($product);
+        $wishlistCustomer = $wishlists->activeCustomer();
+        $wishlistItemIds = $wishlistCustomer === null
+            ? []
+            : $wishlists->itemIdsForProducts($wishlistCustomer, [$product->getKey()]);
 
         return view('frontend.products.show', [
             'product' => $product,
@@ -92,6 +103,9 @@ class ProductController extends Controller
             'initialVariant' => $initialVariant,
             'summaryPriceDisplay' => $this->money($summaryPrice),
             'summaryShowsFromPrice' => ! $isSimpleProduct && $pricingSummary['has_differing_effective_prices'],
+            'wishlistItemId' => $wishlistItemIds[(int) $product->getKey()] ?? null,
+            'canManageWishlist' => $wishlistCustomer !== null,
+            'isWishlistGuest' => $request->user('web') === null,
         ]);
     }
 

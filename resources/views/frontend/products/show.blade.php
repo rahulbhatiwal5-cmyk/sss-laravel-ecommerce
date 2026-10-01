@@ -19,6 +19,14 @@
             <span>{{ $product->name }}</span>
         </div>
 
+        @if (session('status'))
+            <div class="alert alert-success" role="status">{{ session('status') }}</div>
+        @endif
+
+        @if (session('error'))
+            <div class="alert alert-danger" role="alert">{{ session('error') }}</div>
+        @endif
+
         <article class="product-detail">
             <div>
                 <img class="product-main-image" src="{{ $mainImageUrl }}" alt="{{ $product->name }}">
@@ -131,6 +139,23 @@
                             <p class="small text-danger mb-2">{{ session('error') }}</p>
                         @endif
                     </form>
+                @endif
+
+                @if ($canManageWishlist)
+                    @if ($wishlistItemId)
+                        <form method="POST" action="{{ route('store.wishlist.destroy', $wishlistItemId) }}" class="mt-3">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn btn-outline-dark w-100" type="submit">Remove from wishlist</button>
+                        </form>
+                    @else
+                        <form method="POST" action="{{ route('store.wishlist.store', $product) }}" class="mt-3">
+                            @csrf
+                            <button class="btn btn-outline-dark w-100" type="submit">Save to wishlist</button>
+                        </form>
+                    @endif
+                @elseif ($isWishlistGuest)
+                    <a class="btn btn-outline-dark w-100 mt-3" href="{{ route('store.login') }}">Sign in to save</a>
                 @endif
 
                 @if ($product->description)

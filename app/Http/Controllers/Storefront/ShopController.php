@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\CustomerWishlist;
 use App\Services\ProductPriceCalculator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -17,7 +18,11 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class ShopController extends Controller
 {
-    public function index(Request $request, ProductPriceCalculator $priceCalculator): View
+    public function index(
+        Request $request,
+        ProductPriceCalculator $priceCalculator,
+        CustomerWishlist $wishlists,
+    ): View
     {
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:255'],
@@ -85,6 +90,11 @@ class ShopController extends Controller
             );
         });
 
+        $wishlistCustomer = $wishlists->activeCustomer();
+        $wishlistItemIds = $wishlistCustomer === null
+            ? []
+            : $wishlists->itemIdsForProducts($wishlistCustomer, $products->getCollection()->modelKeys());
+
         return view('frontend.shop', [
             'products' => $products,
             'categories' => $this->filterCategories($now),
@@ -93,6 +103,9 @@ class ShopController extends Controller
             'selectedCategoryId' => $selectedCategory?->getKey(),
             'selectedBrandId' => $selectedBrand?->getKey(),
             'hasFilters' => $search !== '' || $categoryValue !== '' || $brandValue !== '',
+            'wishlistItemIds' => $wishlistItemIds,
+            'canManageWishlist' => $wishlistCustomer !== null,
+            'isWishlistGuest' => $request->user('web') === null,
         ]);
     }
 

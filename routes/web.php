@@ -2,17 +2,18 @@
 
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\AddressController;
+use App\Http\Controllers\Storefront\AccountController;
 use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\ShopController;
+use App\Http\Controllers\Storefront\WishlistController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 $storeViews = [
     '404' => 'frontend.404',
     'about' => 'frontend.about',
-    'account' => 'frontend.account',
     'article' => 'frontend.article',
     'collections' => 'frontend.collections',
     'contact' => 'frontend.contact',
@@ -24,7 +25,6 @@ $storeViews = [
     'order-success' => 'frontend.order-success',
     'privacy' => 'frontend.privacy',
     'product' => 'frontend.product',
-    'profile' => 'frontend.profile',
     'sale' => 'frontend.sale',
     'search' => 'frontend.search',
     'shipping-returns' => 'frontend.shipping-returns',
@@ -32,7 +32,6 @@ $storeViews = [
     'size-guide' => 'frontend.size-guide',
     'terms' => 'frontend.terms',
     'track-order' => 'frontend.track-order',
-    'wishlist' => 'frontend.wishlist',
 ];
 
 Route::view('/', 'frontend.home')->name('store.home');
@@ -44,7 +43,16 @@ Route::get('/register', [CustomerAuthController::class, 'createRegistration'])->
 Route::post('/register', [CustomerAuthController::class, 'storeRegistration'])->name('store.register.submit');
 Route::post('/logout', [CustomerAuthController::class, 'destroy'])->name('store.logout');
 Route::middleware('customer')->group(function () {
+    Route::get('/account', [AccountController::class, 'index'])->name('store.account');
+    Route::get('/profile', [AccountController::class, 'edit'])->name('store.profile');
+    Route::put('/profile', [AccountController::class, 'updateProfile'])->name('store.profile.update');
+    Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('store.profile.password.update');
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('store.checkout');
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('store.wishlist');
+    Route::post('/products/{product:slug}/wishlist', [WishlistController::class, 'store'])->name('store.wishlist.store');
+    Route::delete('/wishlist/{wishlist}', [WishlistController::class, 'destroy'])
+        ->whereNumber('wishlist')
+        ->name('store.wishlist.destroy');
     Route::get('/addresses', [AddressController::class, 'index'])->name('store.addresses');
     Route::get('/addresses/create', [AddressController::class, 'create'])->name('store.addresses.create');
     Route::post('/addresses', [AddressController::class, 'store'])->name('store.addresses.store');
@@ -89,8 +97,17 @@ Route::get('/cart.html', function (Request $request) {
 Route::get('/checkout.html', function (Request $request) {
     return redirect()->route('store.checkout', $request->query(), 301);
 });
+Route::get('/wishlist.html', function (Request $request) {
+    return redirect()->route('store.wishlist', $request->query(), 301);
+});
 Route::get('/addresses.html', function (Request $request) {
     return redirect()->route('store.addresses', $request->query(), 301);
+});
+Route::get('/account.html', function (Request $request) {
+    return redirect()->route('store.account', $request->query(), 301);
+});
+Route::get('/profile.html', function (Request $request) {
+    return redirect()->route('store.profile', $request->query(), 301);
 });
 Route::get('/login.html', function (Request $request) {
     return redirect()->route('store.login', $request->query(), 301);

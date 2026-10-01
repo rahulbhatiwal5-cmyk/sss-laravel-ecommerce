@@ -27,7 +27,11 @@
             @else
                 <a href="{{ route('store.login') }}" aria-label="Sign in"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4" /><path d="M4 21v-2a8 8 0 0116 0v2" /></svg><span>Sign in</span></a>
             @endif
-            <a href="wishlist.html" aria-label="Wishlist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 00-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 000-7.8Z" /></svg></a>
+            @if ($canManageWishlist ?? false)
+                <a href="{{ route('store.wishlist') }}" aria-label="Wishlist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 00-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 000-7.8Z" /></svg><span data-server-wishlist-count>{{ $wishlistCount ?? 0 }}</span></a>
+            @elseif (! $storeUser)
+                <a href="{{ route('store.login') }}" aria-label="Sign in to save items"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 00-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 000-7.8Z" /></svg></a>
+            @endif
             <a href="{{ route('store.cart') }}" aria-label="Shopping bag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l1 14H4L5 7Z" /><path d="M8 8V6a4 4 0 018 0v2" /></svg><span data-cart-count data-server-cart-count>{{ $cartItemCount ?? 0 }}</span></a>
         </div>
     </nav>
